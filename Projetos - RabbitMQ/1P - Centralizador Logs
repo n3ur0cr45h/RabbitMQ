@@ -1,1 +1,65 @@
 
+1. mkdir /RabbitMQ && cd /RabbitMQ 
+
+2. apt install python3-pip -y && apt install python3-pika && apt install rabbitmq-server -y && systemctl status rabbitmq-server 
+
+3. vi produtor.py
+	 import pika
+     import json
+     import random
+     import time
+     
+     LOG_LEVELS = ["INFO", "AVISO", "ERRO"]
+     
+     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+     channel = connection.channel()
+     
+     channel.queue_declare(queue='log_queue', durable=True)
+     
+     def send_log():
+         while True:
+             log = {
+                 "Serviço": random.choice(["Autenticacao", "Cobranca", "Pedidos"]),
+                 "level": random.choice(LOG_LEVELS),
+                 "message": f"Mensagem de log {random.randint(1, 100)}"
+             }
+             channel.basic_publish(
+                 exchange='',
+                 routing_key='log_queue',
+                 body=json.dumps(log),
+                 properties=pika.BasicProperties(delivery_mode=2)
+             )
+             print(f"[x] Log enviado: {log}")
+             time.sleep(2)
+     
+     send_log()
+	 
+4. vi consumidor.py 
+     import pika
+     import json
+     from datetime import datetime
+     
+     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+     channel = connection.channel()
+     channel.queue_declare(queue='log_queue', durable=True)
+     
+     def callback(ch, method, properties, body):
+         log = json.loads(body)
+         with open("logs.txt", "a") as f:
+             f.write(f"{datetime.now()} - {log['Serviço']} - {log['Nível']} - {log['Mensagem']}\n")
+         print(f"[✓] Log salvo: {log}")
+         ch.basic_ack(delivery_tag=method.delivery_tag)
+     
+     channel.basic_qos(prefetch_count=1)
+     channel.basic_consume(queue='log_queue', on_message_callback=callback)
+     
+     print('[*] Esperando logs. Pressione CTRL+C para sair')
+     channel.start_consuming()
+	 
+5. (Em um terminal) python3 produtor.py 
+
+6. (Em outro terminal) python3 consumidor.py 
+
+7. Para habilitar a interface gráfica: 
+	 7.1 rabbitmq-plugins enable rabbitmq_management 
+	 7.2 curl localhost:15672
