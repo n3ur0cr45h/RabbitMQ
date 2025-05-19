@@ -38,7 +38,7 @@
   
 |  ID  | Título                    | Descrição                                                                        | 
 | ---- | ------------------------- | ---------------------------------------------------------------------------------| 
-|  01  | Centralizador de Logs     | Instalar e Configurar o RabbitMQ para Centralizar Logs                           |
+|  01  | Centralizador de Logs     | Instalar e Configurar o RabbitMQ para Armazenar Logs                             |
 
 
 </div> 
