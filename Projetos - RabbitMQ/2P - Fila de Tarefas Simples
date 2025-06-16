@@ -1,0 +1,62 @@
+
+1. Para conseguir executar o RabbitMQ no Windows, precisa realizar algumas configurações... 
+
+  1.1. Instalar o Erlang e o RabbitMQ - https://www.rabbitmq.com/docs/install-windows
+  1.2. Verificar as variavéis de ambiente, e caso não tenha, inserir o diretório "sbin" do RabbitMQ em Path; 
+  1.3. Verificar também o cookie do Erlang: "C:\Windows\System32\config\systemprofile"
+  1.4. Copiar o cookie, e colar na pasta onde está trabalhando 
+ 
+2. Verificar o status do RabbitMQ
+
+  rabbitmqctl status
+  
+3. Ativar o Plugin de Gerenciamento do RabbitMQ 
+
+  rabbitmq-plugins enable rabbitmq_management
+  
+4. Instalar a biblioteca "pika" 
+
+  pip install pika 
+  
+5. consumidor.py 
+
+     import pika
+     
+     credentials = pika.PlainCredentials('guest', 'admin@2024')
+     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost', credentials=credentials))
+     channel = connection.channel()
+     
+     channel.queue_declare(queue='tarefas')
+     
+     mensagem = "Tarefa 1: Processar relatório"
+     channel.basic_publish(exchange='',
+                           routing_key='tarefas',
+                           body=mensagem)
+     
+     print(f"[x] Enviado: {mensagem}")
+     connection.close()
+	 
+6. produtor.py 
+
+     import pika
+     import time
+     
+     credentials = pika.PlainCredentials('guest', 'admin@2024')
+     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost', credentials=credentials))
+     channel = connection.channel()
+     
+     channel.queue_declare(queue='tarefas')
+     
+     def callback(ch, method, properties, body):
+         print(f"[x] Recebido: {body.decode()}")
+         time.sleep(2)  # Simula tempo de processamento
+         print("[x] Tarefa concluída")
+     
+     channel.basic_consume(queue='tarefas',
+                           on_message_callback=callback,
+                           auto_ack=True)
+     
+     print('[*] Aguardando mensagens. Pressione CTRL+C para sair.')
+     channel.start_consuming()
+	 
+7. python consumidor.py - em outro terminal, executar o produtor.py 
