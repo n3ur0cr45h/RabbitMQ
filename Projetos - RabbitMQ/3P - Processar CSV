@@ -1,0 +1,57 @@
+
+1. rabbitmqctl status
+
+2. Criar um excel.csv com esses dados:
+
+     id,nome,email
+     1,Ana,ana@email.com
+     2,Carlos,carlos@email.com
+     3,João,joao@email.com
+	 
+3. produtor.py
+
+     import pika
+     import csv
+     import json
+     
+     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+     channel = connection.channel()
+     channel.queue_declare(queue='csv_queue')
+     
+     with open('excel.csv', newline='') as csvfile:
+         reader = csv.DictReader(csvfile)
+         for row in reader:
+             message = json.dumps(row)
+             channel.basic_publish(exchange='',
+                                   routing_key='csv_queue',
+                                   body=message)
+             print(f"Enviado: {message}")
+     
+     connection.close()
+	 
+	 
+4. worker.py 
+
+     import pika
+     import json
+     import time
+     
+     def callback(ch, method, properties, body):
+         data = json.loads(body)
+         print(f"Processando linha: {data}")
+         time.sleep(2)  
+         print(f"Finalizado: {data['id']} - {data['nome']}")
+     
+     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+     channel = connection.channel()
+     channel.queue_declare(queue='csv_queue')
+     
+     channel.basic_qos(prefetch_count=1)
+     channel.basic_consume(queue='csv_queue',
+                           on_message_callback=callback,
+                           auto_ack=True)
+     
+     print('Aguardando mensagens...')
+     channel.start_consuming()
+	 
+5. Executar o worker e o produtor em terminais diferentes 
