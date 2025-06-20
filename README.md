@@ -41,6 +41,7 @@
 |  01  | Centralizador de Logs     | Instalar e Configurar o RabbitMQ para Armazenar Logs                             |
 |  02  | Fila de Tarefas Simples   | Configurar o RabbitMQ no Windows, e executar uma fila de tarefa simples          |
 |  03  | Processamento CSV         | Processamento de arquivos .csv                                                   |
+|  04  | Gerador de PDF            | Gerador de PDF Assíncrono, usando Python para inserção dos dados                 |
 
 </div> 
 </details>
