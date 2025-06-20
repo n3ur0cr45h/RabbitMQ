@@ -42,6 +42,7 @@
          print(f"Processando linha: {data}")
          time.sleep(2)  
          print(f"Finalizado: {data['id']} - {data['nome']}")
+
      credentials = pika.PlainCredentials('guest', 'admin@2024')
      connection = pika.BlockingConnection(pika.ConnectionParameters('localhost', credentials=credentials))
      channel = connection.channel()
