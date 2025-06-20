@@ -1,0 +1,67 @@
+
+1. rabbitmqctl status
+
+2. produtor.py
+
+     import pika
+     import json
+     
+     data = {
+         "nome": "Maria Silva",
+         "cpf": "123.456.789-00",
+         "valor": "R$ 1.500,00"
+     }
+     
+     credentials = pika.PlainCredentials('guest', 'admin@2024')
+     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost', credentials=credentials))
+     channel = connection.channel()
+     
+     channel.queue_declare(queue='pdf_queue', durable=True)
+     
+     
+     channel.basic_publish(
+         exchange='',
+         routing_key='pdf_queue',
+         body=json.dumps(data),
+         properties=pika.BasicProperties(delivery_mode=2)  # Mensagem persistente
+     )
+     
+     print("Mensagem enviada para geração de PDF")
+     connection.close()
+	 
+3. consumidor.py
+
+     import pika
+     import json
+     from reportlab.lib.pagesizes import A4
+     from reportlab.pdfgen import canvas
+     
+     def gerar_pdf(dados):
+         filename = f"pdfs/recibo_{dados['nome'].replace(' ', '_')}.pdf"
+         c = canvas.Canvas(filename, pagesize=A4)
+         c.drawString(100, 750, f"Recibo de Pagamento")
+         c.drawString(100, 720, f"Nome: {dados['nome']}")
+         c.drawString(100, 700, f"CPF: {dados['cpf']}")
+         c.drawString(100, 680, f"Valor: {dados['valor']}")
+         c.save()
+         print(f" PDF gerado: {filename}")
+     
+     credentials = pika.PlainCredentials('guest', 'admin@2024')
+     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost', credentials=credentials))
+     channel = connection.channel()
+     channel.queue_declare(queue='pdf_queue', durable=True)
+     
+     def callback(ch, method, properties, body):
+         dados = json.loads(body)
+         gerar_pdf(dados)
+         ch.basic_ack(delivery_tag=method.delivery_tag)
+     
+     channel.basic_qos(prefetch_count=1)
+     channel.basic_consume(queue='pdf_queue', on_message_callback=callback)
+     
+     print("Aguardando mensagens para gerar PDF...")
+     channel.start_consuming()
+	 
+4. python consumidor.py 
+
+5. python produtor.py 
