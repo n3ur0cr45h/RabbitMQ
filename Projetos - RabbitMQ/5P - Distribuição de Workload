@@ -55,3 +55,5 @@
 4. python produtor.py 
 
 5. python worker.py
+
+6. python worker.py
