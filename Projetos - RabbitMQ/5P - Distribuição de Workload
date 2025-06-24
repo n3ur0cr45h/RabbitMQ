@@ -1,0 +1,57 @@
+
+1. rabbitmqctl status
+
+2. produtor.py 
+
+     import pika
+     import sys
+     import time
+     
+     credentials = pika.PlainCredentials('guest', 'admin@2024')
+     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost', credentials=credentials))
+     channel = connection.channel()
+     
+     channel.queue_declare(queue='task_queue', durable=True)
+     
+     for i in range(10):
+         message = f"Tarefa {i+1}"
+         channel.basic_publish(
+             exchange='',
+             routing_key='task_queue',
+             body=message,
+             properties=pika.BasicProperties(delivery_mode=2)  # torna a mensagem persistente
+         )
+         print(f"[x] Enviou: {message}")
+         time.sleep(0.5)
+     
+     connection.close()
+	 
+3. worker.py
+
+     import pika
+     import time
+     import random
+     
+     
+     credentials = pika.PlainCredentials('guest', 'admin@2024')
+     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost', credentials=credentials))
+     channel = connection.channel()
+     
+     channel.queue_declare(queue='task_queue', durable=True)
+     print('[*] Esperando por tarefas. CTRL+C para sair')
+     
+     def callback(ch, method, properties, body):
+         print(f"[x] Recebido {body.decode()}")
+         process_time = random.randint(2, 5)
+         time.sleep(process_time)
+         print(f"[✓] Tarefa concluída em {process_time}s")
+         ch.basic_ack(delivery_tag=method.delivery_tag)
+     
+     channel.basic_qos(prefetch_count=1)  # cada worker pega 1 por vez
+     channel.basic_consume(queue='task_queue', on_message_callback=callback)
+     
+     channel.start_consuming()
+	 
+4. python produtor.py 
+
+5. python worker.py
