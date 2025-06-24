@@ -42,6 +42,7 @@
 |  02  | Fila de Tarefas Simples   | Configurar o RabbitMQ no Windows, e executar uma fila de tarefa simples          |
 |  03  | Processamento CSV         | Processamento de arquivos .csv                                                   |
 |  04  | Gerador de PDF            | Gerador de PDF Assíncrono, usando Python para inserção dos dados                 |
+|  05  | Distribuição Workloads    | alanceamento de carga entre múltiplos workers para processar arquivos ou dados   |
 
 </div> 
 </details>
