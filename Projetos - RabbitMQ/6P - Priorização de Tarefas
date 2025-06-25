@@ -1,0 +1,71 @@
+
+1. produtor.py
+
+     import pika
+     
+     credentials = pika.PlainCredentials('guest', 'admin@2024')
+     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost', credentials=credentials))
+     channel = connection.channel()
+     
+     # Cria três filas separadas
+     fila_prioridades = ['fila_alta', 'fila_media', 'fila_baixa']
+     for fila in fila_prioridades:
+         channel.queue_declare(queue=fila, durable=True)
+     
+     mensagens = [
+         ("Tarefa crítica", "alta"),
+         ("Tarefa normal", "media"),
+         ("Tarefa opcional", "baixa"),
+     ]
+     
+     for msg, prioridade in mensagens:
+         fila = f'fila_{prioridade}'
+         channel.basic_publish(
+             exchange='',
+             routing_key=fila,
+             body=msg,
+             properties=pika.BasicProperties(delivery_mode=2)  # persistente
+         )
+         print(f"[x] Enviado: '{msg}' para {fila}")
+     
+     connection.close()
+
+2. dispache.py 
+
+     import pika
+     import time
+     
+     credentials = pika.PlainCredentials('guest', 'admin@2024')
+     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost', credentials=credentials))
+     channel = connection.channel()
+     
+     fila_prioridades = ['fila_alta', 'fila_media', 'fila_baixa']
+     for fila in fila_prioridades:
+         channel.queue_declare(queue=fila, durable=True)
+     
+     def consumir_uma_msg(fila):
+         method_frame, header_frame, body = channel.basic_get(queue=fila, auto_ack=False)
+         if method_frame:
+             print(f"[X] {fila.upper()} -> {body.decode()}")
+             time.sleep(1)  # simula tempo de processamento
+             channel.basic_ack(delivery_tag=method_frame.delivery_tag)
+             return True
+         return False
+     
+     print("[*] Dispatcher aguardando mensagens por prioridade (CTRL+C para sair)")
+     try:
+         while True:
+             encontrou_msg = False
+             for fila in fila_prioridades:
+                 if consumir_uma_msg(fila):
+                     encontrou_msg = True
+                     break  # processa uma por vez, começando da fila de maior prioridade
+             if not encontrou_msg:
+                 time.sleep(0.5)  # espera antes de tentar de novo
+     except KeyboardInterrupt:
+         print("Encerrando dispatcher.")
+         connection.close()
+
+3. python dispache.py 
+
+4. python produtor.py
