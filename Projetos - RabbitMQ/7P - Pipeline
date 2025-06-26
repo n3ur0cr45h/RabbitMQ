@@ -1,0 +1,105 @@
+
+
+1. produtor.py 
+
+     import pika
+     import json
+     import time
+     import random
+     
+     def generate_raw_data():
+         return {
+             "id": random.randint(1000, 9999),
+             "name": random.choice([" Alice ", "Bob", " Carol"]),
+             "age": random.choice([25, 30, 22, None])
+         }
+     
+     credentials = pika.PlainCredentials('guest', 'admin@2024')
+     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost', credentials=credentials))
+     channel = connection.channel()
+     channel.queue_declare(queue='raw_data')
+     
+     while True:
+         data = generate_raw_data()
+         message = json.dumps(data)
+         channel.basic_publish(exchange='', routing_key='raw_data', body=message)
+         print(f"[Producer] Sent: {message}")
+         time.sleep(2)
+		 
+2. limpeza.py 
+
+     import pika
+     import json
+     
+     def clean_data(data):
+         data['name'] = data['name'].strip().capitalize()
+         if data['age'] is None:
+             data['age'] = 0
+         return data
+     
+     def callback(ch, method, properties, body):
+         raw = json.loads(body)
+         cleaned = clean_data(raw)
+         print(f"[Cleaner] Cleaned: {cleaned}")
+         channel.basic_publish(exchange='', routing_key='clean_data', body=json.dumps(cleaned))
+     
+     credentials = pika.PlainCredentials('guest', 'admin@2024')
+     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost', credentials=credentials))
+     channel = connection.channel()
+     channel.queue_declare(queue='raw_data')
+     channel.queue_declare(queue='clean_data')
+     
+     channel.basic_consume(queue='raw_data', on_message_callback=callback, auto_ack=True)
+     print('[Cleaner] Waiting for raw data...')
+     channel.start_consuming()
+	 
+3. analise.py 
+
+     import pika
+     import json
+     
+     def analyze_data(data):
+         data['is_adult'] = data['age'] >= 18
+         return data
+     
+     def callback(ch, method, properties, body):
+         clean = json.loads(body)
+         analyzed = analyze_data(clean)
+         print(f"[Analyzer] Analyzed: {analyzed}")
+         channel.basic_publish(exchange='', routing_key='analyzed_data', body=json.dumps(analyzed))
+     
+     credentials = pika.PlainCredentials('guest', 'admin@2024')
+     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost', credentials=credentials))
+     channel = connection.channel()
+     channel.queue_declare(queue='clean_data')
+     channel.queue_declare(queue='analyzed_data')
+     
+     channel.basic_consume(queue='clean_data', on_message_callback=callback, auto_ack=True)
+     print('[Analyzer] Waiting for cleaned data...')
+     channel.start_consuming()
+	 
+4. armazenamento.py 
+
+     import pika
+     import json
+     
+     def callback(ch, method, properties, body):
+         final_data = json.loads(body)
+         print(f"[Storer] Stored: {final_data}")
+         # Ou salvar em um BD ou Excel
+     
+     credentials = pika.PlainCredentials('guest', 'admin@2024')
+     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost', credentials=credentials))
+     channel = connection.channel()
+     channel.queue_declare(queue='analyzed_data')
+     
+     channel.basic_consume(queue='analyzed_data', on_message_callback=callback, auto_ack=True)
+     print('[Storer] Waiting for analyzed data...')
+     channel.start_consuming()
+	 
+	 
+5. Abrir terminais diferentes para cada arquivo: 
+     5.1. python produtor.py
+	 5.2. python limpeza.py 
+	 5.3. python analise.py
+	 5.4. python armazem.py 
