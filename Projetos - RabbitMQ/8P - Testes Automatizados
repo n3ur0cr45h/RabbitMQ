@@ -1,0 +1,73 @@
+
+1. pip install pika pytest flask 
+
+2. api.py 
+
+     import pika
+     import json
+     from flask import Flask, request
+     
+     app = Flask(__name__)
+     
+     def send_to_queue(test_code):
+         credentials = pika.PlainCredentials('guest', 'admin@2024')
+         connection = pika.BlockingConnection(pika.ConnectionParameters('localhost', credentials=credentials))
+         channel = connection.channel()
+         channel.queue_declare(queue='test_queue')
+         channel.basic_publish(
+             exchange='',
+             routing_key='test_queue',
+             body=json.dumps({'code': test_code})
+         )
+         connection.close()
+     
+     @app.route('/run-tests', methods=['POST'])
+     def run_tests():
+         data = request.json
+         test_code = data.get('code')
+         send_to_queue(test_code)
+         return {'status': 'Test submitted to queue'}, 200
+     
+     if __name__ == '__main__':
+         app.run(debug=True)
+		 
+3. worker.py 
+
+     import pika
+     import json
+     import tempfile
+     import subprocess
+     
+     def run_tests(code):
+         with tempfile.NamedTemporaryFile(delete=False, suffix=".py", mode='w') as f:
+             f.write(code)
+             f.flush()
+             result = subprocess.run(['pytest', f.name], capture_output=True, text=True)
+             print("STDOUT:", result.stdout)
+             print("STDERR:", result.stderr)
+     
+     def callback(ch, method, properties, body):
+         data = json.loads(body)
+         code = data['code'].replace('\\n', '\n').replace('`n', '\n')
+         print("[x] Running test...")
+         run_tests(code)
+         print("[X] Test completed.")
+     
+     credentials = pika.PlainCredentials('guest', 'admin@2024')
+     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost', credentials=credentials))
+     channel = connection.channel()
+     channel.queue_declare(queue='test_queue')
+     
+     channel.basic_consume(queue='test_queue', on_message_callback=callback, auto_ack=True)
+     print('[*] Waiting for test jobs. To exit press CTRL+C')
+     channel.start_consuming()
+	 
+4. python worker.py 
+
+5. api.py 
+
+6. 
+     Invoke-RestMethod -Uri "http://localhost:5000/run-tests" `
+     -Method POST `
+     -Headers @{ "Content-Type" = "application/json" } `
+     -Body '{ "code": "def test_add():`n    assert 1 + 1 == 2" }'
