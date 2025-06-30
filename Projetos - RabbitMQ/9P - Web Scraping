@@ -1,0 +1,52 @@
+
+1. install pika requests beautifulsoup4
+
+2. produtor.py
+
+   import pika
+   connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+   channel = connection.channel()
+   channel.queue_declare(queue='urls_queue')
+   urls = [
+       'https://example.com',
+       'https://python.org',
+       'https://openai.com'
+   ]
+   for url in urls:
+       channel.basic_publish(exchange='', routing_key='urls_queue', body=url)
+       print(f"[PRODUTOR] Enviado: {url}")
+   connection.close()
+   
+3. consumidor.py
+
+
+   import pika
+   import requests
+   from bs4 import BeautifulSoup
+   
+   
+   connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+   channel = connection.channel()
+   
+   channel.queue_declare(queue='urls_queue')
+   
+   def callback(ch, method, properties, body):
+       url = body.decode()
+       print(f"[CONSUMIDOR] Recebido: {url}")
+   
+       try:
+           response = requests.get(url, timeout=10)
+           soup = BeautifulSoup(response.text, 'html.parser')
+           title = soup.title.string if soup.title else "Sem título"
+           print(f"[SCRAPER] Título da página: {title}")
+       except Exception as e:
+           print(f"[ERRO] Falha ao acessar {url}: {str(e)}")
+   
+   channel.basic_consume(queue='urls_queue', on_message_callback=callback, auto_ack=True)
+   
+   print("[CONSUMIDOR] Aguardando URLs...")
+   channel.start_consuming()
+   
+4. python consumidor.py 
+
+5. python produtor.py 
