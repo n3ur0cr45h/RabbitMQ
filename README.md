@@ -46,7 +46,7 @@
 |  06  | Priorização de Tarefas    | Realizar a Priorização de Tarefas, fazendo com que a crítica seja processada 1º  |
 |  07  | Pipeline de Dados         | Processamento de Dados com uma Pipeline e 4 Microserviços                        |
 |  08  | Testes Automatizados      | Criar fila onde testes são enviados para uma fila e processados pelo worker      |
-|  09  | Crawler Distribuído       | URLs publicadas em filas, e o worker realiza o scrapping                         |
+|  09  | Crawler Distribuído       | URLs publicadas em filas, e o worker realiza o scraping                          |
 
 </div> 
 </details>
