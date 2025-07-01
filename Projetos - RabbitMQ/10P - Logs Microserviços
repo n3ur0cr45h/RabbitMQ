@@ -1,0 +1,67 @@
+
+1. pip install pika flask 
+
+2. consumidor.py 
+
+   import pika
+   import json
+   
+   def process_log(log_data):
+       print("Processando log:", log_data)
+       
+   
+   def callback(ch, method, properties, body):
+       log_data = json.loads(body)
+       process_log(log_data)
+       ch.basic_ack(delivery_tag=method.delivery_tag)  
+   
+   def start_consuming():
+       connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+       channel = connection.channel()
+       channel.queue_declare(queue='logs', durable=True)
+       
+       
+       channel.basic_consume(queue='logs', on_message_callback=callback)
+   
+       print('Esperando por logs. Para sair pressione CTRL+C')
+       channel.start_consuming()
+   
+   if __name__ == "__main__":
+       start_consuming()
+	   
+3. produtor.py 
+
+   import pika
+   import json
+   import logging
+   
+   
+   def send_log_to_queue(log_message):
+       
+       connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+       channel = connection.channel()
+   
+       
+       channel.queue_declare(queue='logs', durable=True)
+   
+       
+       log_data = json.dumps(log_message)
+       channel.basic_publish(
+           exchange='',
+           routing_key='logs',  
+           body=log_data,
+           properties=pika.BasicProperties(
+               delivery_mode=2,  
+           )
+       )
+       print(f"Log enviado: {log_message}")
+   
+       connection.close()
+   
+   
+   log_message = {"service": "service1", "message": "Error processing order", "timestamp": "2025-07-01T12:00:00"}
+   send_log_to_queue(log_message)
+   
+4. python consumidor.py 
+
+5. python produtor.py 
