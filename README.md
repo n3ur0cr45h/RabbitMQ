@@ -47,6 +47,7 @@
 |  07  | Pipeline de Dados         | Processamento de Dados com uma Pipeline e 4 Microserviços                        |
 |  08  | Testes Automatizados      | Criar fila onde testes são enviados para uma fila e processados pelo worker      |
 |  09  | Crawler Distribuído       | URLs publicadas em filas, e o worker realiza o scraping                          |
+|  10  | Logs Microserviços        | Capturar logs de múltiplos microserviços e processar os logs em filas            |
 
 </div> 
 </details>
